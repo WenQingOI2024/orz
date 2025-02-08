@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>用户是否在线判断</title>
+    <!-- <script type="text/javascript" src="//cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script> -->
+    <script type="text/javascript" src="{{ url_for('static', filename='jq.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='socket.io.min.js') }}"></script>
+    <!-- <script type="text/javascript" src="//cdn.bootcss.com/socket.io/3.1.2/socket.io.min.js"></script> -->
+</head>
+
+<body>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        socket.on('connect', function () {
+        });
+        socket.on('disconnect', function () {
+
+        });
+    </script>
+
+    Welcom,{{ip}}.
+    <br>
+    <span>your money:</span><span id="mlist"></span>
+    <br>在线列表：<br>
+    <main id="list"></main>
+    <button onclick="tog()">是否准备</button><span id="ruready"></span>
+    <br><span>your id:</span><span id="gameid"></span>
+    <br>
+    <span>手牌: </span> <br>
+    <span id="hds">
+        <span id="dipai" style="display: inline;">【底牌】</span><span id="hds0" style="display: none;"></span><button
+            onclick="togdi()">查看底牌</button><br>
+        <span id="hds1"></span><br>
+        <span id="hds2"></span><br>
+        <span id="hds3"></span><br>
+        <span id="hds4"></span>
+    </span><br>
+    <input type="number" name="" id="bet"><button onclick="asd()">check</button>
+
+    <br>
+    <br>
+    <br>
+    <button>give up!</button>
+    <br>
+    <span>bet: </span><span id="betall"></span><br>
+    <span>ischecked?: </span><span id="ckall"></span><br>
+    <dialog id="gzdia" style="position:fixed;top: 0;left: 0;width: 100vw;height: 100vh;display: none;">
+        <div style="margin: auto;">
+            <h2>是否再跟: <span id="mxbt"></span></h2>
+            <br>
+            <button onclick="jxgz()">yes</button>
+            <br>
+            <br>
+            <button>no</button>
+        </div>
+    </dialog>
+    <script>
+        var flagdi = 0;
+        function togdi() {
+            if (flagdi == 0) flagdi = 1;
+            else flagdi = 0;
+            if (flagdi == 1) {
+                $("#dipai").css('display', 'none');
+                $("#hds0").css('display', 'inline');
+            } else {
+                $("#dipai").css('display', 'inline');
+                $("#hds0").css('display', 'none');
+            }
+        }
+        function jxgz() {
+            $.ajax({
+                url: "/red",
+                type: "GET",
+                dataType: "json",
+                success: function (res) {
+                    ;
+                }
+            });
+        }
+        var timlst = 500;
+        function tog() {
+            $.ajax({
+                type: "GET",
+                url: "/ChangeReady/",
+                dataType: "json",
+                success: function (fres) {
+                    console.log(fres);
+                }
+            })
+        }
+        var myip = '{{ ip }}';
+        var GAMESTATUS = 0, gameid = -1;
+        var nowsteps = 0, originstps = 0;
+        var checked = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+        console.log(myip);
+        function asd() {
+            checked[nowsteps] = 1;
+            $.ajax({
+                url: "/postck",
+                data: { cheked: checked[nowsteps] },
+                type: "POST",
+                dataType: "json",
+                success: function (res) {
+                    ;
+                }
+            });
+        }
+        setInterval(() => {
+            console.log(checked);
+            $.ajax({
+                url: "/checked/",
+                type: "GET",
+                dataType: "json",
+                success: function (res) {
+                    checked[nowsteps] = res["{{ip}}"];
+                    if (checked[nowsteps] == 0) {
+                        $.ajax({
+                            url: "/postbet",
+                            data: { bet: $("#bet").val() == '' ? 0 : $("#bet").val() },
+                            type: "POST",
+                            dataType: "json",
+                            success: function (fdasddwadas) {
+                                ;
+                            }
+                        });
+                    }
+                    $("#ckall").html(res);
+                    $("#ckall").html("");
+                    for (i in res) {
+                        $("#ckall").html($("#ckall").html() + "<br>" + i + " " + res[i]);
+                    }
+                }
+            });
+            // ntcg
+            $.ajax({
+                url: "/ntcg/",
+                type: "GET",
+                dataType: "json",
+                success: function (res) {
+                    if (res["{{ip}}"] != 0) {
+                        $("#gzdia").css('display', 'block');
+                        $("#mxbt").html(res["{{ip}}"]);
+                    } else {
+                        $("#gzdia").css('display', 'none');
+                    }
+                }
+            });
+            $.ajax({
+                url: "/bets/",
+                type: "GET",
+                dataType: "json",
+                success: function (res) {
+                    console.log(res);
+                    $("#betall").html("");
+                    for (i in res) {
+                        $("#betall").html($("#betall").html() + "<br>" + i + " " + res[i]);
+                    }
+                }
+            });
+            $.ajax({
+                type: "GET",
+                url: "/steps/",
+                dataType: "json",
+                success: function (res) {
+                    nowsteps = res;
+                    if (originstps != nowsteps) { //changestep
+                        $("#bet").val(0);
+                        if(nowsteps==0){ // DONE>>>
+                            $("#hds0").html("");
+                            $("#hds1").html("");
+                            $("#hds2").html("");
+                            $("#hds3").html("");
+                            $("#hds4").html("");
+                        }
+                    }
+                    originstps = nowsteps;
+                    console.log("steps: " + nowsteps);
+                    if (nowsteps >= 1)
+                        for (let i = 0; i <= nowsteps; i++) {
+                            $.ajax({
+                                type: "GET",
+                                url: `/gethands/${i}`,
+                                dataType: "json",
+                                success: function (res) {
+                                    if (res[1] == 4) $(`#hds${i}`).html("黑桃 " + res[0]);
+                                    if (res[1] == 3) $(`#hds${i}`).html("红桃 " + res[0]);
+                                    if (res[1] == 2) $(`#hds${i}`).html("梅花 " + res[0]);
+                                    if (res[1] == 1) $(`#hds${i}`).html("方片 " + res[0]);
+                                }
+                            })
+                        }
+                }
+            })
+            $.ajax({
+                type: "GET",
+                url: "/people/",
+                dataType: "json",
+                success: function (res) {
+                    $("#list").html("");
+                    console.log(res);
+                    for (i in res) {
+                        $("#list").html($("#list").html() + res[i] + "<br>");
+
+                    }
+                }
+            })
+            $.ajax({
+                type: "GET",
+                url: "/money/",
+                dataType: "json",
+                success: function (resa) {
+                    // $("#mlist").html("")
+                    $("#mlist").html(resa["{{ip}}"])
+                }
+            })
+            $.ajax({
+                type: "GET",
+                url: "/rea/",
+                dataType: "json",
+                success: function (reso) {
+                    // $("#mlist").html("")
+                    $("#ruready").html(reso["{{ip}}"])
+                }
+            })
+            $.ajax({
+                type: "GET",
+                url: "/gamesta/",
+                dataType: "json",
+                success: function (reso) {
+                    console.log(reso);
+                    if (reso == '1') {
+                        if (GAMESTATUS == 0) {
+                            console.log("GAME START!");
+                            GAMESTATUS = 1;
+                            nowsteps = 0;
+                            gamestart();
+                        }
+                    }
+                }
+            })
+        }, timlst);
+        function gamestart() {
+            $.ajax({
+                type: "GET",
+                url: "/playid/",
+                dataType: "json",
+                success: function (reso) {
+                    console.log(reso);
+                    $("#gameid").html(reso["{{ip}}"] - 1);
+                    gameid = reso["{{ip}}"] - 1;
+                    $.ajax({
+                        type: "GET",
+                        url: "/play_poker/",
+                        dataType: "json",
+                        success: function (reso) {
+                            console.log(reso.hands[gameid]);
+                        }
+                    })
+                }
+            })
+
+            setInterval(() => {
+
+            },);
+        }
+
+        // bet online
+        // A number show the steps:1,2,3,4
+        // wait for betting and give button follow or give up.
+        // that all?
+        // eZ
+    </script>
+</body>
+
+</html>

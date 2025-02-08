@@ -1,0 +1,191 @@
+import random
+
+# 初始化变量
+p = [[[0, 0] for _ in range(5)] for _ in range(5)]
+a = []
+tot = 0
+n = 5
+vis = [False] * 28
+
+# 生成所有可能的牌
+for i in range(8, 15):
+    for j in range(1, 5):
+        a.append([i, j])
+        tot += 1
+
+# 洗牌函数
+def my_shuffle():
+    global vis
+    vis = [False] * 28
+    for i in range(5):
+        for j in range(5):
+            pos = random.randint(0, 27)
+            while vis[pos]:
+                pos = random.randint(0, 27)
+            vis[pos] = True
+            p[i][j] = a[pos]
+
+# 比较函数
+def dan(a, b, c, d):
+    if a != c:
+        return a > c
+    return b > d
+
+# 判断是否为同花色
+def is_SC(id):
+    fl = True
+    for i in range(1, 5):
+        if p[id][i][1] != p[id][i - 1][1]:
+            fl = False
+    if fl:
+        return p[id][0][1]
+    return 0
+
+# 判断是否为顺子
+def is_ST(id):
+    pai = [p[id][i][0] for i in range(5)]
+    pai.sort()
+    fl = True
+    for i in range(1, 5):
+        if pai[i - 1] + 1 != pai[i]:
+            fl = False
+    if fl:
+        return pai[4]
+    return 0
+
+# 判断是否为同花顺
+def is_SF(id):
+    num = is_ST(id)
+    col = is_SC(id)
+    if num and col:
+        return True
+    return False
+
+# 判断是否为四条
+def is_BB(id):
+    t = [0] * 20
+    for i in range(5):
+        t[p[id][i][0]] += 1
+    for i in range(8, 15):
+        if t[i] == 4:
+            return i
+    return 0
+
+# 判断是否为三条
+def is_TA(id):
+    t = [0] * 20
+    for i in range(5):
+        t[p[id][i][0]] += 1
+    for i in range(8, 15):
+        if t[i] == 3:
+            return i
+    return 0
+
+# 判断是否为对子数量
+def is_PR(id):
+    t = [0] * 20
+    sum_val = 0
+    for i in range(5):
+        t[p[id][i][0]] += 1
+    for i in range(8, 15):
+        if t[i] == 2:
+            sum_val += 1
+    return sum_val
+
+# 判断是否为葫芦
+def is_CA(id):
+    th = is_TA(id)
+    se = is_PR(id)
+    if th == 0 or se == 0 or se == 2:
+        return 0
+    return th
+
+# 获取牌型得分
+def ask(id):
+    if is_SF(id):
+        return 8
+    elif is_BB(id):
+        return 7
+    elif is_CA(id):
+        return 6
+    elif is_SC(id):
+        return 5
+    elif is_ST(id):
+        return 4
+    elif is_TA(id):
+        return 3
+    return is_PR(id)
+
+# 获取最大牌值
+def MAX_val(id):
+    a, b = p[id][0]
+    for i in range(1, 5):
+        if not dan(a, b, p[id][i][0], p[id][i][1]):
+            a = p[id][i][0]
+    return a
+
+# 获取最大花色
+def MAX_col(id):
+    a, b = p[id][0]
+    for i in range(1, 5):
+        if not dan(a, b, p[id][i][0], p[id][i][1]):
+            a = p[id][i][0]
+            b = p[id][i][1]
+    return b
+
+# 比较两个手牌
+def cmp(i, j, len_val):
+    if len_val == 5:
+        a = ask(i)
+        b = ask(j)
+        if a != b:
+            return a > b
+        if a in [8, 5, 4, 0]:
+            return dan(MAX_val(i), MAX_col(i), MAX_val(j), MAX_col(j))
+        if a == 7:
+            return is_BB(i) > is_BB(j)
+        if a == 6:
+            return is_CA(i) > is_CA(j)
+        if a == 3:
+            return is_TA(i) > is_TA(j)
+        if a in [2, 1]:
+            t1 = [0] * 20
+            t2 = [0] * 20
+            for x in range(5):
+                t1[p[i][x][0]] += 1
+                t2[p[j][x][0]] += 1
+            for x in range(14, 7, -1):
+                if t1[x] != t2[x] and (t1[x] == 2 or t2[x] == 2):
+                    return t1[x] > t2[x]
+            for y in range(14, 7, -1):
+                if t1[y] == 2:
+                    c = 0
+                    d = 0
+                    for x in range(5):
+                        if p[i][x][0] == y:
+                            c = max(c, p[i][x][1])
+                        if p[j][x][0] == y:
+                            d = max(d, p[j][x][1])
+                    return c > d
+    a = p[i][1][0]
+    b = p[i][1][1]
+    for x in range(2, len_val + 1):
+        if not dan(a, b, p[i][x][0], p[i][x][1]):
+            a = p[i][x][0]
+            b = p[i][x][0]
+    c = p[j][1][0]
+    d = p[j][1][1]
+    for x in range(2, len_val + 1):
+        if not dan(c, d, p[j][x][0], p[j][x][1]):
+            c = p[j][x][0]
+            d = p[j][x][0]
+    return dan(a, b, c, d)
+
+# 获取最大手牌的索引
+def get_max_id(len_val):
+    id = 0
+    for i in range(1, n):
+        if cmp(i, id, len_val):
+            id = i
+    return id
+
